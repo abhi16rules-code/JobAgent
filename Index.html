@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobAgent AI – Abhinav Bhardwaj</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0d1a; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  textarea:focus, input:focus { border-color: rgba(232,197,71,0.5) !important; box-shadow: 0 0 0 3px rgba(232,197,71,0.08); }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+  ::-webkit-scrollbar-thumb { background: rgba(232,197,71,0.3); border-radius: 3px; }
+  .tab-btn:hover { color: #e8c547 !important; }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-secondary:hover { background: rgba(255,255,255,0.12) !important; color: #e8e8f0 !important; }
+  .btn-green:hover { opacity: 0.85; }
+  .company-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  tr:hover td { background: rgba(255,255,255,0.055) !important; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+const BASE_CV = `ABHINAV BHARDWAJ
+MBA 2026 | UCD Michael Smurfit Graduate Business School, Dublin
+New Delhi, India | abhinav.bhardwaj@ucd.ie
+
+PROFESSIONAL SUMMARY
+Results-driven business leader with 10+ years of experience spanning supply chain strategy, business development, go-to-market execution, and agri-commodity markets. Founding team member at Agrizy Ventures where I built and scaled a team and vendor network from 0 to 200+ partners. Currently completing MBA at UCD Smurfit (2026) with credentials from Yale School of Management (Behavioural Science), SDA Bocconi (Private Equity), and IIM Calcutta (Supply Chain Management).
+
+EDUCATION
+MBA | UCD Michael Smurfit Graduate Business School, Dublin | 2025–2026
+Certificate | Yale School of Management – Behavioural Science & Decision-Making
+Certificate | SDA Bocconi – Private Equity
+Certificate (In Progress) | IIM Calcutta – Supply Chain Management
+
+EXPERIENCE
+Agrizy Ventures | Founding Team Member & Business Development Lead | 2019–2024
+- Built and scaled vendor network from 0 to 200+ partners across agri-commodity value chain
+- Led go-to-market strategy resulting in 3x revenue growth in 18 months
+- Managed cross-functional teams of 15+ across procurement, logistics, and sales
+- Developed supply chain strategy reducing operational costs by 22%
+- Drove B2B partnerships with Fortune 500 FMCG and food processing companies
+- Designed P&L management framework for ₹80Cr+ business unit
+
+Revenue Growth Manager | Agri-Commodity Sector | 2017–2019
+- Designed and executed GTM strategies for commodity trading operations
+- Managed P&L for a portfolio worth ₹50Cr+
+- Led negotiations with key enterprise accounts and institutional buyers
+
+Supply Chain Specialist | 2014–2017
+- Managed end-to-end supply chain for perishable agri-commodities
+- Implemented demand forecasting models reducing wastage by 18%
+- Coordinated with 50+ logistics partners across Tier 1 and Tier 2 cities
+
+SKILLS
+Strategy & Operations: Business Development, GTM Strategy, Supply Chain Optimization, Market Entry, P&L Management, Stakeholder Management
+Analytics: Data-Driven Decision Making, Demand Forecasting, KPI Design, Financial Modelling
+Leadership: Team Building, Cross-functional Leadership, Vendor Management, Change Management
+Tools: Excel (Advanced), PowerPoint, Tableau, SAP (basic), Salesforce
+Languages: English (Fluent), Hindi (Native)`;
+
+const TARGET_COMPANIES = [
+  { name: "Sanofi", url: "https://jobs.sanofi.com", category: "Pharma MNC" },
+  { name: "Novartis", url: "https://www.novartis.com/careers", category: "Pharma MNC" },
+  { name: "Novo Nordisk", url: "https://www.novonordisk.com/careers", category: "Pharma MNC" },
+  { name: "AstraZeneca", url: "https://careers.astrazeneca.com", category: "Pharma MNC" },
+  { name: "PepsiCo", url: "https://www.pepsicojobs.com", category: "FMCG" },
+  { name: "McDonald's", url: "https://corporate.mcdonalds.com/careers", category: "FMCG" },
+  { name: "Hindustan Unilever", url: "https://careers.unilever.com", category: "FMCG" },
+  { name: "ITC Limited", url: "https://itcportal.com/careers", category: "FMCG" },
+  { name: "Nestlé India", url: "https://www.nestle.in/careers", category: "FMCG" },
+  { name: "Colgate-Palmolive", url: "https://jobs.colgate.com", category: "FMCG" },
+  { name: "Grant Thornton", url: "https://www.grantthornton.in/careers", category: "Consulting" },
+  { name: "Deloitte", url: "https://jobs2.deloitte.com", category: "Consulting" },
+  { name: "McKinsey & Company", url: "https://www.mckinsey.com/careers", category: "Consulting" },
+  { name: "GEP Worldwide", url: "https://www.gep.com/careers", category: "Consulting" },
+  { name: "KPMG", url: "https://home.kpmg/in/careers", category: "Consulting" },
+  { name: "EY", url: "https://careers.ey.com", category: "Consulting" },
+  { name: "Wells Fargo GCC", url: "https://www.wellsfargojobs.com", category: "GCC / BFSI" },
+  { name: "HSBC GCC", url: "https://www.hsbc.com/careers", category: "GCC / BFSI" },
+  { name: "Goldman Sachs", url: "https://www.goldmansachs.com/careers", category: "GCC / BFSI" },
+  { name: "Citi", url: "https://jobs.citi.com", category: "GCC / BFSI" },
+  { name: "Amazon", url: "https://www.amazon.jobs", category: "Tech MNC" },
+  { name: "Google", url: "https://careers.google.com", category: "Tech MNC" },
+  { name: "Microsoft", url: "https://careers.microsoft.com", category: "Tech MNC" },
+  { name: "LinkedIn", url: "https://linkedin.com/jobs", category: "Job Portal" },
+  { name: "Naukri.com", url: "https://naukri.com", category: "Job Portal" },
+  { name: "IIM Jobs", url: "https://iimjobs.com", category: "Job Portal" },
+  { name: "Indeed India", url: "https://in.indeed.com", category: "Job Portal" },
+];
+
+const CATEGORIES = ["All", "Pharma MNC", "FMCG", "Consulting", "GCC / BFSI", "Tech MNC", "Job Portal"];
+
+const CAT_COLORS = {
+  "Pharma MNC": "#e91e63",
+  "FMCG": "#ff9800",
+  "Consulting": "#9c27b0",
+  "GCC / BFSI": "#2196f3",
+  "Tech MNC": "#00bcd4",
+  "Job Portal": "#4caf50",
+};
+
+function today() {
+  const d = new Date();
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, "-");
+}
+
+function AddJobForm({ onAdd, onCancel }) {
+  const [f, setF] = useState({ company: "", role: "", link: "", source: "LinkedIn", notes: "" });
+  const set = k => e => setF(p => ({ ...p, [k]: e.target.value }));
+  const inp = { width: "100%", padding: "10px 12px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", borderRadius: "8px", color: "#e8e8f0", fontSize: "13px", outline: "none" };
+  return (
+    <div style={{ background: "rgba(232,197,71,0.05)", border: "1px solid rgba(232,197,71,0.2)", borderRadius: "12px", padding: "20px", marginBottom: "20px", animation: "fadeIn 0.2s ease" }}>
+      <div style={{ fontWeight: "700", marginBottom: "16px", color: "#e8c547", fontSize: "15px" }}>+ Add New Job</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+        {[["company","Company *"],["role","Role / Position *"],["link","Job URL"],["source","Source"],["notes","Notes"]].map(([k,label]) => (
+          <div key={k}>
+            <label style={{ display:"block", fontSize:"11px", color:"#8888a8", marginBottom:"6px", fontWeight:"600", textTransform:"uppercase", letterSpacing:"0.5px" }}>{label}</label>
+            <input style={inp} value={f[k]} onChange={set(k)} placeholder={k==="source"?"LinkedIn / Naukri / Direct":""} />
+          </div>
+        ))}
+      </div>
+      <div style={{ display:"flex", gap:"10px" }}>
+        <button className="btn-primary" style={{ padding:"10px 22px", background:"linear-gradient(135deg,#e8c547,#f4a261)", border:"none", borderRadius:"8px", color:"#1a1a2e", fontWeight:"700", fontSize:"13px", cursor:"pointer", transition:"all 0.2s" }}
+          onClick={() => { if(f.company && f.role) onAdd(f); }}>Add to Tracker</button>
+        <button className="btn-secondary" style={{ padding:"10px 22px", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"8px", color:"#8888a8", cursor:"pointer", fontSize:"13px", transition:"all 0.2s" }}
+          onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState("apply");
+  const [jobs, setJobs] = useState([
+    { id:1, company:"Sanofi", role:"Senior Manager – Supply Chain Strategy", link:"https://jobs.sanofi.com", dateAdded:"01-May-2025", dateApplied:"", status:"Open", source:"careers.sanofi.com", notes:"" },
+    { id:2, company:"PepsiCo", role:"Senior Manager – Operations Excellence", link:"https://www.pepsicojobs.com", dateAdded:"01-May-2025", dateApplied:"", status:"Open", source:"LinkedIn", notes:"" },
+    { id:3, company:"Novartis", role:"Senior Manager – Business Operations", link:"https://jobs.novartis.com", dateAdded:"01-May-2025", dateApplied:"", status:"Open", source:"novartis.com", notes:"" },
+    { id:4, company:"Grant Thornton", role:"Manager – Strategy & Operations", link:"https://www.grantthornton.in/careers", dateAdded:"01-May-2025", dateApplied:"", status:"Open", source:"grantthornton.in", notes:"" },
+    { id:5, company:"GEP Worldwide", role:"Senior Manager – Supply Chain Consulting", link:"https://www.gep.com/careers", dateAdded:"28-Apr-2025", dateApplied:"30-Apr-2025", status:"Applied", source:"gep.com", notes:"Referral via alumni" },
+    { id:6, company:"Wells Fargo GCC", role:"Senior Manager – Operations Strategy", link:"https://www.wellsfargojobs.com", dateAdded:"01-May-2025", dateApplied:"", status:"Open", source:"LinkedIn", notes:"Hyderabad GCC" },
+  ]);
+  const [jd, setJd] = useState("");
+  const [company, setCompany] = useState("");
+  const [role, setRole] = useState("");
+  const [link, setLink] = useState("");
+  const [source, setSource] = useState("LinkedIn");
+  const [notes, setNotes] = useState("");
+  const [tailoredCV, setTailoredCV] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [flash, setFlash] = useState("");
+  const [filterCat, setFilterCat] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const total = jobs.length;
+  const applied = jobs.filter(j => j.status === "Applied").length;
+  const open = jobs.filter(j => j.status === "Open").length;
+  const rate = total ? Math.round((applied / total) * 100) : 0;
+
+  const markApplied = id => setJobs(prev => prev.map(j => j.id === id ? { ...j, status:"Applied", dateApplied:today() } : j));
+  const removeJob = id => setJobs(prev => prev.filter(j => j.id !== id));
+
+  const addJob = f => {
+    setJobs(prev => [...prev, { ...f, id: Date.now(), dateAdded: today(), dateApplied:"", status:"Open" }]);
+    setShowAddForm(false);
+    setFlash("✓ Job added to tracker!"); setTimeout(() => setFlash(""), 3000);
+  };
+
+  const tailorCV = async () => {
+    if (!jd.trim()) return;
+    setLoading(true); setTailoredCV("");
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: `You are an expert CV writer and ATS specialist for senior management roles in India (Hyderabad, 9–10 years experience bracket).
+
+TARGET ROLE: ${role || "Senior Manager"}
+TARGET COMPANY: ${company || "MNC"}
+JOB DESCRIPTION:
+${jd}
+
+CANDIDATE BASE CV:
+${BASE_CV}
+
+TASK: Rewrite and ATS-optimise this CV for the specific JD. Rules:
+1. Extract ALL ATS keywords from the JD and weave them naturally
+2. Reorder bullets so most relevant experiences appear first
+3. Quantify achievements wherever possible — add realistic numbers if missing
+4. Match exact job title language from the JD in the summary
+5. Tailor the Professional Summary to mirror the JD's language and priorities
+6. For FMCG roles: emphasise GTM, revenue growth, vendor networks
+7. For GCC/BFSI: emphasise process excellence, stakeholder management, transformation
+8. For Consulting: emphasise problem-solving, project delivery, client impact, frameworks
+9. For Pharma MNC: emphasise regulatory awareness, supply chain compliance, cross-functional leadership
+10. Keep it to 2 pages max — tight, punchy, no fluff
+
+Output ONLY the tailored CV text — no preamble, no markdown symbols, no explanations. Clean plain text ready to copy.` }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.find(b => b.type === "text")?.text || "Error. Please try again.";
+      setTailoredCV(text);
+      if (company && role) {
+        setJobs(prev => [...prev, { id: Date.now(), company, role, link, dateAdded: today(), dateApplied:"", status:"Open", source, notes }]);
+        setFlash("✓ Job added to tracker!"); setTimeout(() => setFlash(""), 4000);
+      }
+    } catch(e) {
+      setTailoredCV("API error. Make sure you're connected to the internet and try again.");
+    }
+    setLoading(false);
+  };
+
+  const exportExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(jobs.map((j,i) => ({
+      "#": i+1, "Company": j.company, "Role / Position": j.role, "Job Link": j.link,
+      "Date Added": j.dateAdded, "Date Applied": j.dateApplied, "Status": j.status,
+      "Source": j.source, "Notes": j.notes
+    })));
+    ws["!cols"] = [{wch:5},{wch:22},{wch:35},{wch:40},{wch:14},{wch:14},{wch:12},{wch:18},{wch:30}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Job Applications");
+    XLSX.writeFile(wb, "Abhinav_Job_Tracker.xlsx");
+  };
+
+  const copyCV = () => {
+    navigator.clipboard.writeText(tailoredCV).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+
+  const filteredJobs = jobs.filter(j => filterStatus === "All" || j.status === filterStatus);
+
+  // ── Shared styles ──
+  const card = { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:"16px", padding:"28px", marginBottom:"24px" };
+  const inp = { width:"100%", padding:"12px 16px", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:"10px", color:"#e8e8f0", fontSize:"14px", outline:"none", transition:"border-color 0.2s" };
+  const lbl = { display:"block", fontSize:"11px", fontWeight:"600", color:"#8888a8", marginBottom:"8px", letterSpacing:"0.5px", textTransform:"uppercase" };
+  const sTitle = { fontSize:"18px", fontWeight:"700", color:"#e8e8f0", marginBottom:"20px", display:"flex", alignItems:"center", gap:"10px" };
+  const btnP = { padding:"13px 28px", background:"linear-gradient(135deg,#e8c547,#f4a261)", border:"none", borderRadius:"10px", color:"#1a1a2e", fontWeight:"700", fontSize:"14px", cursor:"pointer", transition:"all 0.2s" };
+  const btnS = { padding:"9px 18px", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.13)", borderRadius:"8px", color:"#b8b8c8", fontWeight:"600", fontSize:"13px", cursor:"pointer", transition:"all 0.2s" };
+
+  return (
+    <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#0d0d1a 0%,#1a1a2e 50%,#0d1b2a 100%)", fontFamily:"'DM Sans','Segoe UI',sans-serif", color:"#e8e8f0" }}>
+
+      {/* Header */}
+      <div style={{ background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(232,197,71,0.2)", padding:"18px 32px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:100, backdropFilter:"blur(12px)" }}>
+        <div>
+          <div style={{ fontSize:"22px", fontWeight:"800", background:"linear-gradient(90deg,#e8c547,#f4a261)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", letterSpacing:"-0.5px" }}>⚡ JobAgent AI</div>
+          <div style={{ fontSize:"12px", color:"#8888a8", marginTop:"2px" }}>Abhinav Bhardwaj · Senior Manager Roles · Hyderabad, India</div>
+        </div>
+        <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
+          <span style={{ fontSize:"11px", background:"rgba(232,197,71,0.12)", border:"1px solid rgba(232,197,71,0.28)", color:"#e8c547", padding:"5px 14px", borderRadius:"20px", fontWeight:"600" }}>MBA 2026 · UCD Smurfit</span>
+          <button className="btn-secondary" style={btnS} onClick={exportExcel}>⬇ Export Excel</button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display:"flex", gap:"4px", padding:"0 32px", background:"rgba(255,255,255,0.02)", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
+        {[["apply","🎯 Apply & Tailor CV"],["tracker","📋 Application Tracker"],["companies","🏢 Target Companies"]].map(([k,v]) => (
+          <button key={k} className="tab-btn" onClick={() => setTab(k)}
+            style={{ padding:"14px 24px", border:"none", background:"none", cursor:"pointer", fontSize:"14px", fontWeight: tab===k ? "700":"500", color: tab===k ? "#e8c547":"#8888a8", borderBottom: tab===k ? "2px solid #e8c547":"2px solid transparent", transition:"all 0.2s", letterSpacing:"0.3px" }}>
+            {v}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding:"32px", maxWidth:"1300px", margin:"0 auto" }}>
+
+        {/* Stats */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"28px" }}>
+          {[["Total Jobs",total,"#e8c547"],["Applied",applied,"#64b5f6"],["Open",open,"#81c784"],["Apply Rate",rate+"%","#f4a261"]].map(([label,val,color]) => (
+            <div key={label} style={{ background:`linear-gradient(135deg,${color}14,${color}06)`, border:`1px solid ${color}28`, borderRadius:"12px", padding:"20px 24px", textAlign:"center" }}>
+              <div style={{ fontSize:"36px", fontWeight:"800", color, lineHeight:1, marginBottom:"6px" }}>{val}</div>
+              <div style={{ fontSize:"11px", color:"#8888a8", fontWeight:"600", letterSpacing:"0.8px", textTransform:"uppercase" }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── APPLY TAB ── */}
+        {tab === "apply" && (
+          <div style={{ animation:"fadeIn 0.3s ease" }}>
+            <div style={card}>
+              <div style={sTitle}>🎯 Paste JD → Get ATS-Optimised CV in Seconds</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"16px" }}>
+                <div><label style={lbl}>Company Name</label><input style={inp} placeholder="e.g. Sanofi India" value={company} onChange={e=>setCompany(e.target.value)} /></div>
+                <div><label style={lbl}>Role / Job Title</label><input style={inp} placeholder="e.g. Senior Manager – Supply Chain" value={role} onChange={e=>setRole(e.target.value)} /></div>
+                <div><label style={lbl}>Job Link / URL</label><input style={inp} placeholder="https://jobs.sanofi.com/..." value={link} onChange={e=>setLink(e.target.value)} /></div>
+                <div><label style={lbl}>Source</label><input style={inp} placeholder="LinkedIn / Naukri / Direct" value={source} onChange={e=>setSource(e.target.value)} /></div>
+              </div>
+              <label style={lbl}>Paste Full Job Description *</label>
+              <textarea style={{ ...inp, minHeight:"200px", resize:"vertical", lineHeight:"1.6", fontFamily:"inherit" }}
+                placeholder="Paste the complete JD here — responsibilities, requirements, preferred skills, keywords. The more complete the JD, the better the ATS optimisation."
+                value={jd} onChange={e=>setJd(e.target.value)} />
+              <div style={{ marginTop:"16px", marginBottom:"20px" }}>
+                <label style={lbl}>Notes (optional)</label>
+                <input style={inp} placeholder="e.g. Referral from Smurfit alumni, priority role" value={notes} onChange={e=>setNotes(e.target.value)} />
+              </div>
+              <div style={{ display:"flex", gap:"12px", alignItems:"center" }}>
+                <button className="btn-primary" style={{ ...btnP, opacity: loading || !jd.trim() ? 0.6 : 1 }} onClick={tailorCV} disabled={loading || !jd.trim()}>
+                  {loading ? (
+                    <span style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+                      <span style={{ display:"inline-block", width:"16px", height:"16px", border:"2px solid rgba(26,26,46,0.3)", borderTopColor:"#1a1a2e", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+                      Tailoring CV with AI...
+                    </span>
+                  ) : "✨ Generate Tailored CV + Add to Tracker"}
+                </button>
+                {flash && <span style={{ color:"#81c784", fontSize:"13px", fontWeight:"600", animation:"fadeIn 0.3s ease" }}>{flash}</span>}
+              </div>
+            </div>
+
+            {tailoredCV && (
+              <div style={{ ...card, border:"1px solid rgba(232,197,71,0.2)", animation:"fadeIn 0.4s ease" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
+                  <div style={sTitle}>📄 ATS-Optimised CV — {company || "Your Application"}</div>
+                  <button className="btn-secondary" style={btnS} onClick={copyCV}>{copied ? "✓ Copied!" : "📋 Copy to Clipboard"}</button>
+                </div>
+                <div style={{ background:"rgba(0,0,0,0.3)", border:"1px solid rgba(232,197,71,0.15)", borderRadius:"12px", padding:"24px", fontFamily:"'Courier New',monospace", fontSize:"12.5px", lineHeight:"1.75", color:"#d4d4e8", whiteSpace:"pre-wrap", maxHeight:"450px", overflowY:"auto" }}>
+                  {tailoredCV}
+                </div>
+                <div style={{ marginTop:"16px", padding:"12px 16px", background:"rgba(232,197,71,0.07)", borderRadius:"8px", fontSize:"13px", color:"#c8b847", lineHeight:"1.5" }}>
+                  💡 <strong>Next step:</strong> Copy the CV above → Apply on the company portal → Return here → Tab "Application Tracker" → Click <strong>"✓ Mark Applied"</strong>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TRACKER TAB ── */}
+        {tab === "tracker" && (
+          <div style={{ animation:"fadeIn 0.3s ease" }}>
+            <div style={card}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px", flexWrap:"wrap", gap:"12px" }}>
+                <div style={sTitle}>📋 Application Tracker</div>
+                <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
+                  {["All","Open","Applied"].map(s => (
+                    <button key={s} className="btn-secondary" style={{ ...btnS, ...(filterStatus===s ? { background:"rgba(232,197,71,0.14)", color:"#e8c547", borderColor:"rgba(232,197,71,0.3)" } : {}) }}
+                      onClick={() => setFilterStatus(s)}>{s}</button>
+                  ))}
+                  <button className="btn-primary" style={{ ...btnP, padding:"9px 20px", fontSize:"13px" }} onClick={() => setShowAddForm(!showAddForm)}>+ Add Job</button>
+                </div>
+              </div>
+
+              {showAddForm && <AddJobForm onAdd={addJob} onCancel={() => setShowAddForm(false)} />}
+
+              <div style={{ overflowX:"auto" }}>
+                <table style={{ width:"100%", borderCollapse:"separate", borderSpacing:"0 3px", fontSize:"13px" }}>
+                  <thead>
+                    <tr>
+                      {["Company","Role / Position","Source","Date Added","Date Applied","Status","Actions"].map(h => (
+                        <th key={h} style={{ padding:"12px 14px", textAlign:"left", color:"#8888a8", fontWeight:"600", fontSize:"11px", letterSpacing:"0.7px", textTransform:"uppercase", borderBottom:"1px solid rgba(255,255,255,0.07)", whiteSpace:"nowrap" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredJobs.length === 0 ? (
+                      <tr><td colSpan={7} style={{ padding:"32px", textAlign:"center", color:"#666" }}>No jobs found. Click "+ Add Job" to get started.</td></tr>
+                    ) : filteredJobs.map(j => (
+                      <tr key={j.id} style={{ transition:"all 0.15s" }}>
+                        <td style={{ padding:"13px 14px", fontWeight:"700", color:"#e8e8f0", background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.04)", whiteSpace:"nowrap" }}>{j.company}</td>
+                        <td style={{ padding:"13px 14px", color:"#c8c8d8", background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.04)", maxWidth:"260px" }}>{j.role}</td>
+                        <td style={{ padding:"13px 14px", color:"#8888a8", fontSize:"12px", background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.04)", whiteSpace:"nowrap" }}>{j.source}</td>
+                        <td style={{ padding:"13px 14px", fontSize:"12px", color:"#b8b8c8", background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.04)", whiteSpace:"nowrap" }}>{j.dateAdded}</td>
+                        <td style={{ padding:"13px 14px", fontSize:"12px", color:"#b8b8c8", background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.04)", whiteSpace:"nowrap" }}>{j.dateApplied || "—"}</td>
+                        <td style={{ padding:"13px 14px", background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                          {j.status === "Open"
+                            ? <span style={{ display:"inline-flex", alignItems:"center", gap:"5px", padding:"4px 12px", background:"rgba(76,175,80,0.13)", border:"1px solid rgba(76,175,80,0.28)", borderRadius:"20px", color:"#81c784", fontSize:"11px", fontWeight:"700", letterSpacing:"0.5px" }}>● Open</span>
+                            : <span style={{ display:"inline-flex", alignItems:"center", gap:"5px", padding:"4px 12px", background:"rgba(33,150,243,0.13)", border:"1px solid rgba(33,150,243,0.28)", borderRadius:"20px", color:"#64b5f6", fontSize:"11px", fontWeight:"700", letterSpacing:"0.5px" }}>✓ Applied</span>
+                          }
+                        </td>
+                        <td style={{ padding:"13px 14px", background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                          <div style={{ display:"flex", gap:"6px", alignItems:"center" }}>
+                            {j.status === "Open" && (
+                              <button className="btn-green" onClick={() => markApplied(j.id)}
+                                style={{ padding:"7px 14px", background:"linear-gradient(135deg,#4caf50,#2e7d32)", border:"none", borderRadius:"7px", color:"#fff", fontWeight:"700", fontSize:"12px", cursor:"pointer", whiteSpace:"nowrap", transition:"opacity 0.2s" }}>
+                                ✓ Applied
+                              </button>
+                            )}
+                            {j.link && (
+                              <a href={j.link} target="_blank" rel="noopener noreferrer"
+                                style={{ padding:"7px 12px", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"7px", color:"#8888a8", textDecoration:"none", fontSize:"13px", display:"inline-block" }} title="Open job link">🔗</a>
+                            )}
+                            <button onClick={() => removeJob(j.id)}
+                              style={{ padding:"7px 12px", background:"rgba(255,107,107,0.08)", border:"1px solid rgba(255,107,107,0.18)", borderRadius:"7px", color:"#ff6b6b", cursor:"pointer", fontSize:"13px", fontWeight:"600" }}>✕</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop:"20px", display:"flex", justifyContent:"flex-end" }}>
+                <button className="btn-primary" style={btnP} onClick={exportExcel}>⬇ Download Excel Tracker</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── COMPANIES TAB ── */}
+        {tab === "companies" && (
+          <div style={{ animation:"fadeIn 0.3s ease" }}>
+            <div style={card}>
+              <div style={sTitle}>🏢 Target Companies & Job Portals</div>
+              <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", marginBottom:"20px" }}>
+                {CATEGORIES.map(c => (
+                  <button key={c} className="btn-secondary" style={{ ...btnS, fontSize:"12px", padding:"6px 14px", ...(filterCat===c ? { background:"rgba(232,197,71,0.13)", color:"#e8c547", borderColor:"rgba(232,197,71,0.28)" } : {}) }}
+                    onClick={() => setFilterCat(c)}>{c}</button>
+                ))}
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(195px,1fr))", gap:"12px" }}>
+                {TARGET_COMPANIES.filter(c => filterCat==="All" || c.category===filterCat).map(c => {
+                  const col = CAT_COLORS[c.category] || "#666";
+                  return (
+                    <a key={c.name} href={c.url} target="_blank" rel="noopener noreferrer" className="company-card"
+                      style={{ background:`linear-gradient(135deg,${col}10,${col}05)`, border:`1px solid ${col}25`, borderRadius:"10px", padding:"15px 16px", cursor:"pointer", textDecoration:"none", transition:"all 0.2s", display:"block" }}>
+                      <div style={{ fontWeight:"700", fontSize:"14px", color:"#e8e8f0", marginBottom:"4px" }}>{c.name}</div>
+                      <div style={{ fontSize:"11px", color:"#8888a8" }}>{c.category}</div>
+                      <div style={{ fontSize:"11px", color:col, marginTop:"10px", fontWeight:"600" }}>Open careers →</div>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ ...card, background:"rgba(232,197,71,0.04)", border:"1px solid rgba(232,197,71,0.13)" }}>
+              <div style={sTitle}>📌 Hyderabad Job Search Strategy</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"20px", fontSize:"13px", color:"#c8c8d8", lineHeight:"1.7" }}>
+                <div>
+                  <div style={{ fontWeight:"700", color:"#e8c547", marginBottom:"10px", fontSize:"14px" }}>Best Job Portals</div>
+                  <div>→ LinkedIn (filter: Senior Manager + Hyderabad + 9–12 yrs)</div>
+                  <div>→ Naukri.com (experience filter + salary band)</div>
+                  <div>→ IIM Jobs (MBA-tier, premium roles)</div>
+                  <div>→ Indeed India (set job alerts)</div>
+                  <div>→ Company career pages directly</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight:"700", color:"#e8c547", marginBottom:"10px", fontSize:"14px" }}>Best-Fit Keywords</div>
+                  <div>→ Senior Manager – Strategy & Operations</div>
+                  <div>→ Head of Supply Chain</div>
+                  <div>→ Business Development Head</div>
+                  <div>→ GCC Operations Lead</div>
+                  <div>→ GTM Strategy Manager</div>
+                  <div>→ P&L Manager · FMCG · Pharma</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight:"700", color:"#e8c547", marginBottom:"10px", fontSize:"14px" }}>Pro Tips</div>
+                  <div>→ Apply Mon–Wed (HR visibility peaks)</div>
+                  <div>→ Connect with HR on LinkedIn after applying</div>
+                  <div>→ Use UCD Smurfit + Yale alumni networks</div>
+                  <div>→ GCC boom in Hyd: Wells Fargo, HSBC, Citi, Google</div>
+                  <div>→ Set Naukri profile to "Actively Looking"</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
